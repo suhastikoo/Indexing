@@ -1,11 +1,14 @@
 package assignment3;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -58,7 +61,7 @@ public class Index {
 		
 		String folderLocation = "D:/CrawlerData/WebData/ParseData";
 		//String folderLocation = "D:/CrawlerData/WebData1/";
-		String readUrl = "D:/CrawlerData/urlList.txt";
+		String readUrl = "D:/CrawlerData/Test2.txt";
 		//String readUrl = "D:/CrawlerData/urlList1.txt";
 		String TempLine1;
 		String TempLine2;
@@ -77,18 +80,10 @@ public class Index {
 			//BufferedReader TextFile = new BufferedReader(new FileReader("Input"));
 			while((TempLine2 = TextFile.readLine()) != null){
 				if (!TempLine2.isEmpty()){
-					ReturnObject ReturnObj = WordFrequency.TokenizeFile(TempLine2, TempList, stopWordsList, finalWords);
+					ReturnObject ReturnObj = TokenizeFile(TempLine2, TempList, stopWordsList, finalWords);
 					TempList = ReturnObj.List;
-					//wordFreqTable = ComputeWordFrequencies(ReturnObj.List, wordFreqTable);
-					//finalWords = ReturnObj.numberOfWords;
-					//TempList.clear();
 				}
 			}
-//			if (finalWords > initialWords){
-//				initialWords = finalWords;
-//				pageUrl = TempLine1;
-//			}
-			//TempList.clear();
 			for (String a : TempList){
 				if (!table.containsKey(a)){
 					HashMap<String,Object> table2 = new HashMap<String,Object>();
@@ -124,7 +119,7 @@ public class Index {
 			}
 			TextFile.close();
 			count += 1;
-			//System.out.println(count);
+			System.out.println(count);
 			TempList.clear();
 			
 			//Print(table);
@@ -140,12 +135,15 @@ public class Index {
 		//=====
 		try
         {
-               FileOutputStream indexFilePath =
-                  new FileOutputStream("D:/CrawlerData/indexTest.ser");
-               ObjectOutputStream oos = new ObjectOutputStream(indexFilePath);
-               oos.writeObject(table);
-               oos.close();
-               indexFilePath.close();
+//               FileOutputStream indexFilePath =
+//                  new FileOutputStream("D:/CrawlerData/indexTest.ser");
+			OutputStream file = new FileOutputStream("D:/CrawlerData/temp2.ser");
+			OutputStream buffer = new BufferedOutputStream(file);
+			ObjectOutput output = new ObjectOutputStream(buffer);
+               //ObjectOutputStream oos = new ObjectOutputStream(indexFilePath);
+			output.writeObject(table);
+			output.close();
+			file.close();
                System.out.printf("Serialized HashMap data is saved in hashmap.ser");
         }catch(IOException ioe)
          {
@@ -174,26 +172,16 @@ public class Index {
 		for (Map.Entry<String, HashMap<String, Object>> entry : table.entrySet()){
 			HashMap<String, Object> tableNew = entry.getValue();
 			//System.out.println(entry.getKey() + " --> " + entry.getValue().size());
+			float compute = (float) count/tableNew.size();
+			float idf = (float) Math.log(compute);
 			for (Map.Entry<String, Object> entry1 : tableNew.entrySet()){
 				String temp = entry1.getKey();
-				float compute = (float) count/tableNew.size();
-				float idf = (float) Math.log(compute);
+				
 				float tf = entry1.getValue().TF;
 				ArrayList<Integer> Locations = entry1.getValue().Locations;
 				float score = (float)tf*idf;
 				tableNew.put(temp, new Object(tf,idf,score,Locations));
 			}
-			//+++++======
-//			List<Map.Entry<String, Object>> tableNewSort = new ArrayList<Entry<String, Object>>(tableNew.entrySet());
-//			//HashMap<String, Object> tableNewSort = entry.getValue();
-//			Collections.sort(tableNewSort, new Comparator<Map.Entry<String, Object>>(){
-//				public int compare(Map.Entry<String, Object> entry1, Map.Entry<String, Object> entry2) {
-//		            Float ent1 = entry1.getValue().Score;
-//		            Float ent2 = entry2.getValue().Score;
-//					return ent2.compareTo(ent1);
-//		        }});
-//			System.out.println(tableNewSort);
-			//===========
 			   List<String> mapKeys = new ArrayList<String>(tableNew.keySet());
 			   List<Float> mapValues = new ArrayList<Float>();
 			   for(String key : tableNew.keySet()){
@@ -232,9 +220,28 @@ public class Index {
 			//==========
 			   table.put(entry.getKey(), sortedMap);
 			   size += 1;
-			   System.out.println("File number: " + size);
+			   System.out.println("Token number: " + size);
 		}
 		return table;
+	}
+	
+	public static ReturnObject TokenizeFile(String TempLine, List<String> TempList, 
+			Hashtable<String, Integer> stopWordsList, int numberOfWords){
+		
+		TempLine = TempLine.replaceAll("[^a-zA-Z0-9']", " ");
+		
+		StringTokenizer fileIn = new StringTokenizer(TempLine);	
+		
+		while (fileIn.hasMoreTokens()){
+			String a = fileIn.nextToken().toLowerCase();
+			a = a.replaceAll("[']", "");
+			if (!stopWordsList.containsKey(a) && a.length()>1){
+				TempList.add(a);
+			}
+			numberOfWords += 1;
+		}
+		return new ReturnObject(TempList,numberOfWords);
+		
 	}
 
 	private static void Print(HashMap<String, HashMap<String, Object>> table) {
